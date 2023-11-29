@@ -59,3 +59,14 @@ class my_fifo:
         '''Returns the number of elements currently in the Queue, not the capacity
            MUST have O(1) performance'''
         return self.num_items
+    
+    def get(self, i : int):
+        """Get some element in the queue.
+        0 : most recent element 
+        ...
+        size - 1 : oldest element.
+        """
+        if i >= self.size() or i < 0:
+            raise IndexError("Index out of bounds for current number of items")
+        exp_inx = (self.front + self.num_items - i - 1) % self.capacity
+        return self.array[exp_inx]

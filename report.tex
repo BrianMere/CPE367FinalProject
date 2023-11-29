@@ -15,8 +15,12 @@
 We have $f_s = 4000$ so then we want some say $32$ samples per 
 run of our frequency analysis. 
 
+We want half of the 32 samples to be overlapped from the previous sample. Thus, 
+16 samples will be from the previous sample. 
+
 \begin{itemize}
-    \item Make a FFT from DFT assuming $2^N$ sized samples. 
+    \item Make a FFT from DFT assuming $2^N$ sized samples.
+    \item Implement a Goertzel Filter given some $\omega_0$ via \href{https://en.wikipedia.org/wiki/Goertzel_algorithm}
     \item Make a LPF and BPF class that takes in $f_s$, $f_c$.
 \end{itemize}
 
