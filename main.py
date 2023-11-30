@@ -8,8 +8,11 @@ import time
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+
+from my_fifo import my_fifo
 from cpe367_wav import cpe367_wav
 from cpe367_sig_analyzer import cpe367_sig_analyzer
+from mainfilter import GoertzelCombs
 
 
 ############################################
@@ -19,34 +22,87 @@ def process_wav(fpath_sig_in):
 ###############################
 # define list of signals to be displayed by and analyzer
 # note that the signal analyzer already includes: 'symbol_val','symbol_det','error'
-    more_sig_list = ['sig_1','sig_2']
+    more_sig_list = ['sig_1','high_freq', 'low_freq']
     # sample rate is 4kHz
     fs = 4000
     # instantiate signal analyzer and load data
     s2 = cpe367_sig_analyzer(more_sig_list,fs)
     s2.load(fpath_sig_in)
     s2.print_desc()
+
+
     ########################
     # students: setup filters
     # process input
+
     xin = 0
+
+    # We'll use two sets of Goertzel Combs to detect the high and low value correspondingly
+    fhigh = [1209, 1336, 1477, 1633]
+    HFDetect = GoertzelCombs(fhigh, fs)
+    flow = [697, 770, 852, 941]
+    LFDetect = GoertzelCombs(flow, fs)
+    # And use this lookup table for values
+    tones : dict[float, dict[float, int]] = {}
+    for f in fhigh:
+        tones[f] = {}
+    tones[1209][697] = 1
+    tones[1336][697] = 2
+    tones[1477][697] = 3
+    tones[1633][697] = ord("A")
+    tones[1209][770] = 4
+    tones[1336][770] = 5
+    tones[1477][770] = 6
+    tones[1633][770] = ord("B")
+    tones[1209][852] = 7
+    tones[1336][852] = 8
+    tones[1477][852] = 9 
+    tones[1633][852] = ord("C")
+    tones[1209][941] = ord("*")
+    tones[1336][941] = 0
+    tones[1477][941] = ord("#")
+    tones[1633][941] = ord("D")
+
+    N = 128 # Size of our sample to use to pass to everything!
+    p = 0.8 # Change this parameter to change O. 0.0 < p < 1.0, where as p->0 we have more resolute tone updates but slower computer times, and vice versa. 
+    O = int(p * N) # The amount of new samples to take before sending everything back through our main filter. 
+
+    xn = my_fifo(N)
+    for _ in range(0, N):
+        xn.enqueue(0.0)
+    i = 0 # Counter for the number of new samples to take
+    symbol_val_det = 0
+    
+
     for n_curr in range(s2.get_len()):
         # read next input sample from the signal analyzer
         xin = s2.get('xin',n_curr)
 
-
         ########################
         # students: evaluate each filter and implement other processing blocks
         ########################
+        xn.dequeue()
+        xn.enqueue(xin)
+        i += 1
+
         # students: combine results from filtering stages
         # and find (best guess of) symbol that is present at this sample time
-        symbol_val_det = 0
-
+        # Update input and filters to get new values. 
+        if i == O:
+            i = 0
+            l = [0.0] * N
+            for _ in range(0, N):
+                l[_] = xn.get(_)
+            hf = HFDetect.get_best_signal_guess(l)
+            s2.set('high_freq', n_curr, hf)
+            lf = LFDetect.get_best_signal_guess(l)
+            s2.set('low_freq', n_curr, lf)
+            symbol_val_det = tones[hf][lf]
 
         # save intermediate signals as needed, for plotting
         # add signals, as desired!
+
         s2.set('sig_1',n_curr,xin)
-        s2.set('sig_2',n_curr,2 * xin)
         # save detected symbol
         s2.set('symbol_det',n_curr,symbol_val_det)
         # get correct symbol (provided within the signal analyzer)
@@ -62,7 +118,7 @@ def process_wav(fpath_sig_in):
     err_mean = s2.get_mean('error')
     print('mean error = '+str( round(100 * err_mean,1) )+'%')
     # define which signals should be plotted
-    plot_sig_list = ['sig_1','sig_2','symbol_val','symbol_det','error']
+    plot_sig_list = ['sig_1','high_freq', 'low_freq', 'symbol_val','symbol_det','error']
     # plot results
     s2.plot(plot_sig_list)
     return True
@@ -78,8 +134,8 @@ def main():
         print(sys.version)
         return False
     # assign file name
-    fpath_sig_in = 'dtmf_signals_slow.txt'
-    # fpath_sig_in = 'dtmf_signals_fast.txt'
+    # fpath_sig_in = 'dtmf_signals_slow.txt'
+    fpath_sig_in = 'dtmf_signals_fast.txt'
     # let's do it!
     return process_wav(fpath_sig_in)
 
