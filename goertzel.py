@@ -17,7 +17,7 @@ class BPGoertzel:
     def __init__(self, f_m : float, f_s : float):
         self.f_m = f_m
         self.f_s = f_s
-        self.bp_filt = BandpassFilter(0.9, 2.1, f_m, f_s)
+        self.bp_filt = BandpassFilter(1.0, 1.0, f_m, f_s)
 
     def get_mag(self, xn : list) -> float:
         """Get the magnitude of our class's f_m value. 

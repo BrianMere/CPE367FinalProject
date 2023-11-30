@@ -40,14 +40,17 @@ class GoertzelCombs:
 
             f_0 = (\sum_k f_k |X[k]|) / (\sum_k |X[k]|)
             """
-            top = 0.0
-            bot = 0.0
-            if len(lf) != len(Xk_mag):
-                raise ValueError("Expected lists of the same length")
-            for k in range(0, len(lf)):
-                top += lf[k] * Xk_mag[k]
-                bot += Xk_mag[k]
-            return top / bot
+            
+            return lf[min(range(len(Xk_mag)), key=Xk_mag.__getitem__)]
+        
+            # top = 0.0
+            # bot = 0.0
+            # if len(lf) != len(Xk_mag):
+            #     raise ValueError("Expected lists of the same length")
+            # for k in range(0, len(lf)):
+            #     top += lf[k] * Xk_mag[k]
+            #     bot += Xk_mag[k]
+            # return top / bot
 
         mpu = Multiprocessor()
         for f in self.freqs:

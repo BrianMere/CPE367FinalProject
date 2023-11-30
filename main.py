@@ -63,7 +63,7 @@ def process_wav(fpath_sig_in):
     tones[1477][941] = ord("#")
     tones[1633][941] = ord("D")
 
-    N = 128 # Size of our sample to use to pass to everything!
+    N = 32 # Size of our sample to use to pass to everything!
     p = 0.8 # Change this parameter to change O. 0.0 < p < 1.0, where as p->0 we have more resolute tone updates but slower computer times, and vice versa. 
     O = int(p * N) # The amount of new samples to take before sending everything back through our main filter. 
 
@@ -72,6 +72,8 @@ def process_wav(fpath_sig_in):
         xn.enqueue(0.0)
     i = 0 # Counter for the number of new samples to take
     symbol_val_det = 0
+    hf = 0
+    lf = 0
     
 
     for n_curr in range(s2.get_len()):
@@ -94,10 +96,11 @@ def process_wav(fpath_sig_in):
             for _ in range(0, N):
                 l[_] = xn.get(_)
             hf = HFDetect.get_best_signal_guess(l)
-            s2.set('high_freq', n_curr, hf)
             lf = LFDetect.get_best_signal_guess(l)
-            s2.set('low_freq', n_curr, lf)
             symbol_val_det = tones[hf][lf]
+        
+        s2.set('high_freq', n_curr, hf)
+        s2.set('low_freq', n_curr, lf)
 
         # save intermediate signals as needed, for plotting
         # add signals, as desired!
