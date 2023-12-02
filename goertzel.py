@@ -28,7 +28,6 @@ class BPGoertzel:
         self.wo = 2*math.pi*self.k / self.N # this guy was defined on k and N!
         #self.deq = DifferenceEquation([-2*math.cos(self.wo), 1], [], 1.0)
         #self.fifo_y = my_fifo(self.N)
-
         self.flush()
 
     def flush(self):
@@ -87,9 +86,14 @@ class BPGoertzel:
 
 if __name__ == "__main__":
 
-    gN = 200
+    gN: int = 200
     f_s = 4000
-    xn = [math.cos(2*math.pi*i*0.03) + math.cos(2*math.pi*i * 0.1) for i in range(0, gN)]
+    xn = [0]*gN
+    for i in range(0, gN//2):
+        xn[i] = math.cos(2*math.pi*i*0.03) + math.cos(2*math.pi*i * 0.1)
+    for i in range(gN//2, gN):
+        xn[i] = math.cos(2*math.pi*i*0.03)
+
 
     dft.plot_dft(xn, 32, f_s, "output")
 
@@ -110,10 +114,10 @@ if __name__ == "__main__":
         l3.append(bpg3.get_mag(xn[i]))
         ln.append(i)
 
-    ax.plot(np.array(ln), np.array(l1))
-    ax.plot(np.array(ln), np.array(l2))
-    ax.plot(np.array(ln), np.array(l3))
-    ax.plot(np.array(ln), np.array(xn))
+    ax.plot(np.array(l1))
+    ax.plot(np.array(l2))
+    ax.plot(np.array(l3))
+    ax.plot(np.array(xn))
     ax.grid()
 
     plt.show()
