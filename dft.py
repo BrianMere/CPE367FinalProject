@@ -43,7 +43,7 @@ def get_f0_mag(kn : list[float], fs : float) -> float:
 def plot_dft(xn : list[float], N : int, fs : float, fname : str | None):
 
     fig, ax = plt.subplots()
-    kn = [0.0] * int(fs/2)
+    kn = [0.0] * N
     Xk = dft_mag(xn, N)
     for i in range(0, N):
         kn[i] = i / N * fs
