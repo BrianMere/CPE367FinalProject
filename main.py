@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from my_fifo import my_fifo
-from cpe367_wav import cpe367_wav
+# from cpe367_wav import cpe367_wav
 from cpe367_sig_analyzer import cpe367_sig_analyzer
 from mainfilter import GoertzelCombs
 
