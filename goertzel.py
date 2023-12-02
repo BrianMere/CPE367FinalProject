@@ -17,18 +17,22 @@ class BPGoertzel:
     information. 
     """
 
-    def __init__(self, N: int, k: int):
-        self.N = N
-        self.k = k
-        #self.k = round((self.f_m / self.f_s) * self.N)
-        #self.sn = my_fifo(self.N)
+    def __init__(self, f_m : float, f_s : float):
+
+        self.f_m = f_m 
+        self.f_s = f_s
+       
         self.s_n = 0
         self.s_n1 = 0
         self.s_n2 = 0
-        self.wo = 2*math.pi*self.k / self.N # this guy was defined on k and N!
-        #self.deq = DifferenceEquation([-2*math.cos(self.wo), 1], [], 1.0)
-        #self.fifo_y = my_fifo(self.N)
+       
         self.flush()
+
+    def get_k(self, N : int) -> int:
+        return int(0.5 + (N * self.f_m / self.f_s))
+    
+    def get_w(self, N : int) -> float:
+        return 2*math.pi*self.get_k(N)/N
 
     def flush(self):
         self.s_n = 0
@@ -44,16 +48,9 @@ class BPGoertzel:
             self.fifo_y.enqueue(0)
         """
     
-    def get_mag(self, x_in : float) -> float:
-        """Get the magnitude of our class's f_m value. 
-        
-        Args:
-            x_in : Single memory input data...
-        """
-        return abs(self.goertzel(x_in))
 
     # goertzel output based on a single new input value of x_in
-    def goertzel(self, x_in : float) -> complex:
+    def goertzel(self, xn : list[float]) -> float:
         """A Gortzel-Style Filter. 
         
         All this is is a filter that does two things in parallel:
@@ -63,73 +60,68 @@ class BPGoertzel:
 
         Args:
             x_in: Signal data dump of some length 1
-            k: Get the k-th DFT constant from doing xn. Thus, the analyzed frequency is wo = 2pi*k/N
+            surr: An integer that represents how many surrounding k-values around w0 you want. 
+
+        Note that this runs on a SINGLE k value, determined by this class.
         """
 
-        # Constants 
-        j = complex(0.0, 1.0)
-        self.s_n2 = self.s_n1
-        self.s_n1 = self.s_n
-        self.s_n: float = x_in + 2*math.cos(self.wo)*self.s_n1 - self.s_n2
-        # i_n: float = self.deq.current_yn(x_in)
-        # assert s_n == i_n
-        #self.sn.dequeue()
-        #self.sn.enqueue(s_n)
-        
-        #self.fifo_y.dequeue()
-        # difference equation for going from s[n] to y[n]
-        y_n : complex = complex(self.s_n) - cmath.exp(-1 * j * self.wo)*complex(self.s_n1)
-        #self.fifo_y.enqueue(y_n)
-        
-        return y_n
-
-    def goertzel_list(self, xn : list[float]):
-        y_l : list = []
-        for x in xn:
-            y_l.append(self.get_mag(x))
+        # Constants
+        N = len(xn)
         self.flush()
-        sum = 0.0
-        y_p = y_l[0]
-        for y_n in y_l:
-            if y_n != y_l[0]:
-                sum += y_n - y_p  
-            y_p = y_n 
-        return sum / (len(xn) - 1)
+
+        # Window the incoming signal
+        xn = xn * np.hamming(len(xn))
+
+        coeff = 2 * math.cos(self.get_w(N))
+        for x in xn:
+            self.s_n: float = x + coeff*self.s_n1 - self.s_n2
+            self.s_n2, self.s_n1 = self.s_n1, self.s_n
+        
+        ret = (
+            0.5 * coeff * self.s_n1 - self.s_n2,
+            math.sin(self.get_w(N)) * self.s_n1,
+            math.sqrt(self.s_n2**2 + self.s_n1**2 - coeff * self.s_n1 * self.s_n2)
+        )
+
+        return ret[2]
 
 
 if __name__ == "__main__":
 
-    gN: int = 200
+    WIND_SIZE = 64
+    gN: int = 24*WIND_SIZE
     f_s = 4000
     xn = [0]*gN
     for i in range(0, gN//2):
-        xn[i] = math.cos(2*math.pi*i*0.03) + math.cos(2*math.pi*i * 0.1)
+        xn[i] = math.cos(2*math.pi*i*400/f_s) + math.cos(2*math.pi*i * 800/f_s)
     for i in range(gN//2, gN):
-        xn[i] = math.cos(2*math.pi*i*0.03) + math.cos(2*math.pi*i * 0.01)
+        xn[i] = math.cos(2*math.pi*i*400/f_s) + math.cos(2*math.pi*i * 40/f_s)
 
 
-    dft.plot_dft(xn, 32, f_s, "output")
+    # dft.plot_dft(xn, 32, f_s, "output")
 
     fig, ax = plt.subplots()
 
-    bpg = BPGoertzel(gN, 2) # 40 Hz, not present, then present
-    bpg2 = BPGoertzel(gN, 20) # 400 Hz, present then not
-    bpg3 = BPGoertzel(gN, 6) # 120 Hz, present
+
+    bpg = BPGoertzel(400, f_s) # 400 Hz, not present, then present
+    bpg2 = BPGoertzel(800, f_s) # 800 Hz, present then not
+    bpg3 = BPGoertzel(40, f_s) # 40 Hz, present
+    
 
     l1 = []
     l2 = []
     l3 = []
 
-    delta = 5
+    delta = WIND_SIZE
     for i in range(0, int(gN/delta)):
-        l1.append(bpg.goertzel_list(xn[i*delta:(i+1)*delta]))
-        l2.append(bpg2.goertzel_list(xn[i*delta:(i+1)*delta]))
-        l3.append(bpg3.goertzel_list(xn[i*delta:(i+1)*delta]))
+        l1.append(bpg.goertzel(xn[i*delta:(i+1)*delta]))
+        l2.append(bpg2.goertzel(xn[i*delta:(i+1)*delta]))
+        l3.append(bpg3.goertzel(xn[i*delta:(i+1)*delta]))
 
-    ax.plot(np.array(l1))
-    ax.plot(np.array(l2))
-    ax.plot(np.array(l3))
-    # ax.plot(np.array(xn))
+    ax.plot(np.array(l1), label="400")
+    ax.plot(np.array(l2), label="800")
+    ax.plot(np.array(l3), label="40")
+    plt.legend(loc="upper left")
     ax.grid()
 
     plt.show()

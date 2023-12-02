@@ -39,9 +39,9 @@ def process_wav(fpath_sig_in):
 
     # We'll use two sets of Goertzel Combs to detect the high and low value correspondingly
     fhigh = [1209, 1336, 1477, 1633]
-    HFDetect = GoertzelCombs(fhigh, fs, 0.025)
+    HFDetect = GoertzelCombs(fhigh, fs)
     flow = [697, 770, 852, 941]
-    LFDetect = GoertzelCombs(flow, fs, 0.025)
+    LFDetect = GoertzelCombs(flow, fs)
     # And use this lookup table for values
     tones : dict[float, dict[float, int]] = {}
     for f in fhigh:
@@ -63,13 +63,21 @@ def process_wav(fpath_sig_in):
     tones[1477][941] = ord("#")
     tones[1633][941] = ord("D")
 
-    N = 32 # Size of our sample to use to pass to everything!
-    p = 0.8 # Change this parameter to change O. 0.0 < p < 1.0, where as p->0 we have more resolute tone updates but slower computer times, and vice versa. 
-    O = int(p * N) # The amount of new samples to take before sending everything back through our main filter. 
+    WINDOW_SIZE = 64 # Size of our sample to use to pass to everything!
+    p = 0.5 # Change this parameter to change O. 0.0 < p < 1.0, where as p->0 we have more resolute tone updates but slower computer times, and vice versa. 
+    O = int(p * WINDOW_SIZE) # The amount of new samples to take before sending everything back through our main filter. 
 
     symbol_val_det = 0
-    hf = 0
-    lf = 0
+    hf = fhigh[0]
+    lf = flow[0]
+    tf = 0
+
+    # Define a place to put our temporary signals ...
+
+    xnp = my_fifo(WINDOW_SIZE)
+    for _ in range(0, WINDOW_SIZE):
+        xnp.enqueue(0.0)
+    i_o = 0
     
 
     for n_curr in range(s2.get_len()):
@@ -80,12 +88,22 @@ def process_wav(fpath_sig_in):
         # students: evaluate each filter and implement other processing blocks
         ########################
 
-        # students: combine results from filtering stages
-        # and find (best guess of) symbol that is present at this sample time
-        # Update input and filters to get new values. 
-        hf = HFDetect.get_best_signal_guess(xin)
-        lf = LFDetect.get_best_signal_guess(xin)
-        tf = HFDetect.probe[1] # 1336
+        xnp.dequeue()
+        xnp.enqueue(xin)
+        i_o += 1
+        
+        if i_o == O:
+            i_o = 0
+
+            data = []
+            for i in range(0, xnp.size()):
+                data.append(xnp.get(i))
+            # students: combine results from filtering stages
+            # and find (best guess of) symbol that is present at this sample time
+            # Update input and filters to get new values. 
+            hf = HFDetect.get_best_signal_guess(data)
+            lf = LFDetect.get_best_signal_guess(data)
+            tf = HFDetect.probe[1] # 1336
 
         symbol_val_det = tones[hf][lf]
         
@@ -128,8 +146,8 @@ def main():
         print(sys.version)
         return False
     # assign file name
-    # fpath_sig_in = 'dtmf_signals_slow.txt'
-    fpath_sig_in = 'dtmf_signals_fast.txt'
+    fpath_sig_in = 'dtmf_signals_slow.txt'
+    # fpath_sig_in = 'dtmf_signals_fast.txt'
     # let's do it!
     return process_wav(fpath_sig_in)
 

@@ -1,3 +1,7 @@
+import matplotlib.pyplot as plt
+import math
+import numpy as np
+
 from goertzel import BPGoertzel
 from multiprocessor import Multiprocessor
 
@@ -14,16 +18,16 @@ class GoertzelCombs:
     asked frequency is primarily in the main signal xn.
     """
 
-    def __init__(self, freqs : list[float], f_s : float, resolution : float = 0.01):
+    def __init__(self, freqs : list[float], f_s : float):
         self.freqs = freqs # Frequencies to look for.
         self.f_s = f_s # Sampling frequency
 
         self.f_filter : dict[float, BPGoertzel] = {} # Dict of internal filters for each f in freq
         for f in freqs:
-            self.f_filter[f] = BPGoertzel(f, self.f_s, resolution)
+            self.f_filter[f] = BPGoertzel(f, self.f_s)
         self.probe : list[float] = [0.0] * len(freqs)
 
-    def get_best_signal_guess(self, x_in : float) -> float:
+    def get_best_signal_guess(self, x_in : list[float]) -> float:
         """Given the state of this GoertzelComb, determine the best guess of the 
         
         The best part about this is that all frequencies are run 
@@ -31,7 +35,7 @@ class GoertzelCombs:
         frequencies we want to detect.
 
         Args:
-            x_in: New sample
+            x_in: New samples
         """
 
         def best_guess(lf : list[float], Xk_mag : list[float]) -> float:
@@ -41,14 +45,14 @@ class GoertzelCombs:
 
             f_0 = (\sum_k f_k |X[k]|) / (\sum_k |X[k]|)
             """
-            
-            return lf[min(range(len(Xk_mag)), key=Xk_mag.__getitem__)]
+            i = max(range(len(Xk_mag)), key=Xk_mag.__getitem__)
+            return lf[i]
 
         # mpu = Multiprocessor()
         ret : list[float] = [0.0] * len(self.freqs)
         for i, f in enumerate(self.freqs):
             # mpu.run(self.f_filter[f].get_mag, x_in)
-            ret[i] = self.f_filter[f].get_mag(x_in)
+            ret[i] = self.f_filter[f].goertzel(x_in)
         # ret : list[float] = mpu.wait_all()
         self.probe = ret
         f0 = best_guess(self.freqs, ret)
@@ -58,12 +62,40 @@ class GoertzelCombs:
     
     
 if __name__ == "__main__":
-    f_s = 4000 
-    f = [1209, 1336, 1477, 1633]
-    xn = [1,2,3,4,5]
 
-    gc = GoertzelCombs(f, f_s)
-    print(str(gc.get_best_signal_guess()))
+    WIND_SIZE = 64
+    gN: int = 24*WIND_SIZE
+    f_s = 4000
+    xn = [0]*gN
+    f1 = [1209, 100, 2000]
+    f2 = [1477, 300, 2000]
+    for i in range(0, gN//2):
+        xn[i] = 0
+        for f in f1:
+            xn[i] += math.cos(2*math.pi*i*f/f_s)
+    for i in range(gN//2, gN):
+        for f in f2:
+            xn[i] += math.cos(2*math.pi*i*f/f_s)
+
+    f_lookup = [1209, 1336, 1477, 1633]
+
+    gc = GoertzelCombs(f_lookup, f_s)
+
+    fig, ax = plt.subplots()
+
+    l = []
+
+    delta = WIND_SIZE
+    for i in range(0, int(gN/delta)):
+        l.append(gc.get_best_signal_guess(xn[i*delta:(i+1)*delta]))
+
+    ax.plot(np.array(l), label="Best Signal Guess")
+    plt.legend(loc="upper left")
+    ax.grid()
+
+    plt.show()
+
+    pass
 
         
 
