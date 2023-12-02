@@ -83,6 +83,19 @@ class BPGoertzel:
         
         return y_n
 
+    def goertzel_list(self, xn : list[float]):
+        y_l : list = []
+        for x in xn:
+            y_l.append(self.get_mag(x))
+        self.flush()
+        sum = 0.0
+        y_p = y_l[0]
+        for y_n in y_l:
+            if y_n != y_l[0]:
+                sum += y_n - y_p  
+            y_p = y_n 
+        return sum / (len(xn) - 1)
+
 
 if __name__ == "__main__":
 
@@ -107,15 +120,16 @@ if __name__ == "__main__":
     l2 = []
     l3 = []
 
-    for i in range(0, gN):
-        l1.append(bpg.get_mag(xn[i]))
-        l2.append(bpg2.get_mag(xn[i]))
-        l3.append(bpg3.get_mag(xn[i]))
+    delta = 5
+    for i in range(0, int(gN/delta)):
+        l1.append(bpg.goertzel_list(xn[i*delta:(i+1)*delta]))
+        l2.append(bpg2.goertzel_list(xn[i*delta:(i+1)*delta]))
+        l3.append(bpg3.goertzel_list(xn[i*delta:(i+1)*delta]))
 
-    #ax.plot(np.array(l1))
+    ax.plot(np.array(l1))
     ax.plot(np.array(l2))
     ax.plot(np.array(l3))
-    ax.plot(np.array(xn))
+    # ax.plot(np.array(xn))
     ax.grid()
 
     plt.show()
