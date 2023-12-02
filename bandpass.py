@@ -138,8 +138,8 @@ class DifferenceEquation:
 
 if __name__ == "__main__":
 
-    A = [-1, -1]
-    B = [1]
+    A = []
+    B = [1, 2, -5, 2]
      
     de = DifferenceEquation(A, B, 0.0)
     print(str(de.hn(100)))

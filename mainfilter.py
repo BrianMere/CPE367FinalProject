@@ -14,15 +14,16 @@ class GoertzelCombs:
     asked frequency is primarily in the main signal xn.
     """
 
-    def __init__(self, freqs : list[float], f_s : float):
+    def __init__(self, freqs : list[float], f_s : float, resolution : float = 0.01):
         self.freqs = freqs # Frequencies to look for.
         self.f_s = f_s # Sampling frequency
 
         self.f_filter : dict[float, BPGoertzel] = {} # Dict of internal filters for each f in freq
         for f in freqs:
-            self.f_filter[f] = BPGoertzel(f, self.f_s)
+            self.f_filter[f] = BPGoertzel(f, self.f_s, resolution)
+        self.probe : list[float] = [0.0] * len(freqs)
 
-    def get_best_signal_guess(self, xn : list[float]) -> float:
+    def get_best_signal_guess(self, x_in : float) -> float:
         """Given the state of this GoertzelComb, determine the best guess of the 
         
         The best part about this is that all frequencies are run 
@@ -30,7 +31,7 @@ class GoertzelCombs:
         frequencies we want to detect.
 
         Args:
-            xn: List of sample inputs to run our filters over...
+            x_in: New sample
         """
 
         def best_guess(lf : list[float], Xk_mag : list[float]) -> float:
@@ -42,20 +43,14 @@ class GoertzelCombs:
             """
             
             return lf[min(range(len(Xk_mag)), key=Xk_mag.__getitem__)]
-        
-            # top = 0.0
-            # bot = 0.0
-            # if len(lf) != len(Xk_mag):
-            #     raise ValueError("Expected lists of the same length")
-            # for k in range(0, len(lf)):
-            #     top += lf[k] * Xk_mag[k]
-            #     bot += Xk_mag[k]
-            # return top / bot
 
-        mpu = Multiprocessor()
-        for f in self.freqs:
-            mpu.run(self.f_filter[f].get_mag, xn)
-        ret : list[float] = mpu.wait_all()
+        # mpu = Multiprocessor()
+        ret : list[float] = [0.0] * len(self.freqs)
+        for i, f in enumerate(self.freqs):
+            # mpu.run(self.f_filter[f].get_mag, x_in)
+            ret[i] = self.f_filter[f].get_mag(x_in)
+        # ret : list[float] = mpu.wait_all()
+        self.probe = ret
         f0 = best_guess(self.freqs, ret)
         # Return the closest key to f0 available
         return min(self.freqs, key=lambda x : abs(x - f0))

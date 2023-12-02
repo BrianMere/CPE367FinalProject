@@ -22,7 +22,7 @@ def process_wav(fpath_sig_in):
 ###############################
 # define list of signals to be displayed by and analyzer
 # note that the signal analyzer already includes: 'symbol_val','symbol_det','error'
-    more_sig_list = ['sig_1','high_freq', 'low_freq']
+    more_sig_list = ['sig_1','high_freq', 'low_freq', '1336']
     # sample rate is 4kHz
     fs = 4000
     # instantiate signal analyzer and load data
@@ -39,9 +39,9 @@ def process_wav(fpath_sig_in):
 
     # We'll use two sets of Goertzel Combs to detect the high and low value correspondingly
     fhigh = [1209, 1336, 1477, 1633]
-    HFDetect = GoertzelCombs(fhigh, fs)
+    HFDetect = GoertzelCombs(fhigh, fs, 0.025)
     flow = [697, 770, 852, 941]
-    LFDetect = GoertzelCombs(flow, fs)
+    LFDetect = GoertzelCombs(flow, fs, 0.025)
     # And use this lookup table for values
     tones : dict[float, dict[float, int]] = {}
     for f in fhigh:
@@ -67,10 +67,6 @@ def process_wav(fpath_sig_in):
     p = 0.8 # Change this parameter to change O. 0.0 < p < 1.0, where as p->0 we have more resolute tone updates but slower computer times, and vice versa. 
     O = int(p * N) # The amount of new samples to take before sending everything back through our main filter. 
 
-    xn = my_fifo(N)
-    for _ in range(0, N):
-        xn.enqueue(0.0)
-    i = 0 # Counter for the number of new samples to take
     symbol_val_det = 0
     hf = 0
     lf = 0
@@ -83,24 +79,19 @@ def process_wav(fpath_sig_in):
         ########################
         # students: evaluate each filter and implement other processing blocks
         ########################
-        xn.dequeue()
-        xn.enqueue(xin)
-        i += 1
 
         # students: combine results from filtering stages
         # and find (best guess of) symbol that is present at this sample time
         # Update input and filters to get new values. 
-        if i == O:
-            i = 0
-            l = [0.0] * N
-            for _ in range(0, N):
-                l[_] = xn.get(_)
-            hf = HFDetect.get_best_signal_guess(l)
-            lf = LFDetect.get_best_signal_guess(l)
-            symbol_val_det = tones[hf][lf]
+        hf = HFDetect.get_best_signal_guess(xin)
+        lf = LFDetect.get_best_signal_guess(xin)
+        tf = HFDetect.probe[1] # 1336
+
+        symbol_val_det = tones[hf][lf]
         
         s2.set('high_freq', n_curr, hf)
         s2.set('low_freq', n_curr, lf)
+        s2.set('1336', n_curr, tf)
 
         # save intermediate signals as needed, for plotting
         # add signals, as desired!
@@ -121,7 +112,7 @@ def process_wav(fpath_sig_in):
     err_mean = s2.get_mean('error')
     print('mean error = '+str( round(100 * err_mean,1) )+'%')
     # define which signals should be plotted
-    plot_sig_list = ['sig_1','high_freq', 'low_freq', 'symbol_val','symbol_det','error']
+    plot_sig_list = more_sig_list + ['symbol_val','symbol_det','error']
     # plot results
     s2.plot(plot_sig_list)
     return True
