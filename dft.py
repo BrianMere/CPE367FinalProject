@@ -57,17 +57,17 @@ def plot_dft(xn : list[float], N : int, fs : float, fname : str | None):
 
     
     
-    with open(f'{fname}.txt', 'w') as f:
-        f.write(f"Data for {fname}: ...\n")
-        # freq of the peak
-        f.write(f"fp: {kn[Xk.index(max(Xk))]}\n")
-        # freq of the peak using weighted average
-        freqAvg = get_f0_mag(Xk, fs)
-        f.write(f"f0: {freqAvg}\n")
-        # measured air gap in inches
-        airGap = 343*39.3701*0.5/freqAvg	
-        f.write(f"ag: {airGap} (in)\n")
-        f.close()
+    # with open(f'{fname}.txt', 'w') as f:
+    #     f.write(f"Data for {fname}: ...\n")
+    #     # freq of the peak
+    #     f.write(f"fp: {kn[Xk.index(max(Xk))]}\n")
+    #     # freq of the peak using weighted average
+    #     freqAvg = get_f0_mag(Xk, fs)
+    #     f.write(f"f0: {freqAvg}\n")
+    #     # measured air gap in inches
+    #     airGap = 343*39.3701*0.5/freqAvg	
+    #     f.write(f"ag: {airGap} (in)\n")
+    #     f.close()
     
     if fname == None:
         plt.show()

@@ -1,4 +1,5 @@
 from my_fifo import my_fifo
+from dft import plot_dft
 import math
 
 class BandpassFilter:
@@ -16,6 +17,43 @@ class BandpassFilter:
     def __init__(self, pole_radius : float, f_c : float, f_s : float):
         self.de = DifferenceEquation([-2*pole_radius*math.cos(2*math.pi*f_c/f_s), pole_radius**2], [], 1 - pole_radius)
 
+class LowpassFilter:
+    """Standard definition of a low-pass filter"""
+
+    def __init__(self, f_c : float, f_s : float, M : int, gain : float) -> None:
+        B = []
+        F = f_c / f_s
+        D = (M - 1) // 2
+        for n in range(-D, D):
+            
+            if n != 0:
+                new = gain * math.sin(2 * math.pi * F * n) / (math.pi * n)
+            else:
+                new = 2 * gain * F
+            B.append(new)
+        self.de = DifferenceEquation([], B[1:], B[0])
+
+class BandpassFilterRange:
+    """Standard definition of a high-pass filter, using a range of frequencies to get it"""
+
+    def __init__(self, freqs : list[float], width_overhang : float, f_s : float, M : int, gain : float) -> None:
+        """
+        Use a list of frequencies, and a width of overhang off of one side to create a bandpass filter. 
+        """
+        avgF = sum(freqs) / len(freqs) / f_s
+        maxF = max(freqs) / f_s
+        overF = width_overhang / f_s
+        w0 = 2 * math.pi * avgF
+        wmax = 2 * math.pi * maxF
+        wover = 2 * math.pi * overF
+        wover_new = wmax - w0 + wover
+
+        lpcf = wover_new * (f_s / (2 * math.pi))
+
+        lpf = LowpassFilter(lpcf, f_s, M, gain)
+        B = [2*math.cos(w0 * n) for n in range(0, M)]
+        B = [a * b for a,b in zip(lpf.de.hn(), B)]
+        self.de = DifferenceEquation([], B[1:], B[0])
         
 class DifferenceEquation:
     """Class definition of a difference equation, given some list 
@@ -134,7 +172,8 @@ class DifferenceEquation:
         if number_values is None:
             number_values = len(self.B)
         return self.yn([1], number_values)
-            
+
+        
 
 if __name__ == "__main__":
 
@@ -145,11 +184,21 @@ if __name__ == "__main__":
     # de = DifferenceEquation(A, B, 0.0)
     # print(str(de.yn(xn, 100)))
 
-    f_s = 4000
-    f_ran = [1209, 1336, 1477, 1633]
+    f_s = 20000
 
-    bp = BandpassFilter()
+    # lpf = LowpassFilter(5000, f_s, 21, 2.0)
+
+    lpf = BandpassFilterRange([5000], 3000, f_s, 21, 2.0)
+
+    hn = lpf.de.hn()
+    plot_dft(hn, len(hn), f_s, fname = None)
+
+    print(str(lpf.de.hn()))
+    # f_ran = [1209, 1336, 1477, 1633]
+
+    # bp = BandpassFilterRange(f_ran, 100, f_s, 31, 1.4)
     
+    # print(str(bp.de.hn()))
         
         
         

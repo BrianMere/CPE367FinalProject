@@ -12,7 +12,8 @@ import numpy as np
 from my_fifo import my_fifo
 # from cpe367_wav import cpe367_wav
 from cpe367_sig_analyzer import cpe367_sig_analyzer
-from mainfilter import GoertzelCombs
+from mainfilter import GoertzelFilterComb, GoertzelCombs
+from bandpass import BandpassFilterRange, DifferenceEquation
 
 
 ############################################
@@ -39,8 +40,10 @@ def process_wav(fpath_sig_in):
 
     # We'll use two sets of Goertzel Combs to detect the high and low value correspondingly
     fhigh = [1209, 1336, 1477, 1633]
-    HFDetect = GoertzelCombs(fhigh, fs)
+    # HFDetect = GoertzelFilterComb(fhigh, fs, BandpassFilterRange(fhigh, 100, fs, 31, 1.4).de)
     flow = [697, 770, 852, 941]
+    HFDetect = GoertzelCombs(fhigh, fs)
+    # LFDetect = GoertzelFilterComb(flow, fs, BandpassFilterRange(flow, 100, fs, 31, 1.4).de)
     LFDetect = GoertzelCombs(flow, fs)
     # And use this lookup table for values
     tones : dict[float, dict[float, int]] = {}

@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 from goertzel import BPGoertzel
-from bandpass import BandpassFilter
+from bandpass import BandpassFilter, DifferenceEquation
 
 class GoertzelCombs:
     """The main, overarching filter for this project...
@@ -63,7 +63,16 @@ class GoertzelCombs:
         # Return the closest key to f0 available
         return min(self.freqs, key=lambda x : abs(x - f0))
     
-    
+class GoertzelFilterComb:
+    """Same as above but applies a Filter prior..."""
+
+    def __init__(self, freqs : list[float], f_s : float, filter : DifferenceEquation):
+        self.GC = GoertzelCombs(freqs, f_s)
+        self.filt = filter
+
+    def get_best_signal_guess(self, x_in: list[float]) -> float:
+        return self.GC.get_best_signal_guess(self.filt.yn(x_in))
+        
     
 if __name__ == "__main__":
 
