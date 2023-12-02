@@ -13,8 +13,8 @@ class BandpassFilter:
     self.de.<method_name>...
     """
 
-    def __init__(self, pole_radius : float, gain : float, f_c : float, f_s : float):
-        self.de = DifferenceEquation([-2*pole_radius*math.cos(f_c/f_s), pole_radius**2], [], gain)
+    def __init__(self, pole_radius : float, f_c : float, f_s : float):
+        self.de = DifferenceEquation([-2*pole_radius*math.cos(2*math.pi*f_c/f_s), pole_radius**2], [], 1 - pole_radius)
 
         
 class DifferenceEquation:
@@ -138,11 +138,17 @@ class DifferenceEquation:
 
 if __name__ == "__main__":
 
-    A = []
-    B = [1, 2, -5, 2]
+    # A = []
+    # B = [1, 2, -5, 2]
+    # xn = [1,2,3,4,5]
      
-    de = DifferenceEquation(A, B, 0.0)
-    print(str(de.hn(100)))
+    # de = DifferenceEquation(A, B, 0.0)
+    # print(str(de.yn(xn, 100)))
+
+    f_s = 4000
+    f_ran = [1209, 1336, 1477, 1633]
+
+    bp = BandpassFilter()
     
         
         

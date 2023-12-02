@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 from goertzel import BPGoertzel
-from multiprocessor import Multiprocessor
+from bandpass import BandpassFilter
 
 class GoertzelCombs:
     """The main, overarching filter for this project...
@@ -47,13 +47,17 @@ class GoertzelCombs:
             """
             i = max(range(len(Xk_mag)), key=Xk_mag.__getitem__)
             return lf[i]
-
-        # mpu = Multiprocessor()
+        
+        # First, filter the input to our band of frequencies:
+        
         ret : list[float] = [0.0] * len(self.freqs)
         for i, f in enumerate(self.freqs):
-            # mpu.run(self.f_filter[f].get_mag, x_in)
-            ret[i] = self.f_filter[f].goertzel(x_in)
-        # ret : list[float] = mpu.wait_all()
+            # You can try either passing through BP initially, or not...
+            xn = BandpassFilter(0.9, f, self.f_s).de.yn(x_in)
+            # xn = x_in
+
+            ret[i] = self.f_filter[f].goertzel(xn)
+        
         self.probe = ret
         f0 = best_guess(self.freqs, ret)
         # Return the closest key to f0 available

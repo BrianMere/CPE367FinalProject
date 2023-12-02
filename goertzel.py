@@ -21,12 +21,6 @@ class BPGoertzel:
 
         self.f_m = f_m 
         self.f_s = f_s
-       
-        self.s_n = 0
-        self.s_n1 = 0
-        self.s_n2 = 0
-       
-        self.flush()
 
     def get_k(self, N : int) -> int:
         return int(0.5 + (N * self.f_m / self.f_s))
@@ -34,22 +28,6 @@ class BPGoertzel:
     def get_w(self, N : int) -> float:
         return 2*math.pi*self.get_k(N)/N
 
-    def flush(self):
-        self.s_n = 0
-        self.s_n1 = 0
-        self.s_n2 = 0
-        """
-        while not self.sn.is_empty():
-            self.sn.dequeue()
-        while not self.fifo_y.is_empty():
-            self.fifo_y.dequeue()
-        for _ in range(self.N):
-            self.sn.enqueue(0)
-            self.fifo_y.enqueue(0)
-        """
-    
-
-    # goertzel output based on a single new input value of x_in
     def goertzel(self, xn : list[float]) -> float:
         """A Gortzel-Style Filter. 
         
@@ -67,23 +45,18 @@ class BPGoertzel:
 
         # Constants
         N = len(xn)
-        self.flush()
 
         # Window the incoming signal
         xn = xn * np.hamming(len(xn))
 
         coeff = 2 * math.cos(self.get_w(N))
-        for x in xn:
-            self.s_n: float = x + coeff*self.s_n1 - self.s_n2
-            self.s_n2, self.s_n1 = self.s_n1, self.s_n
-        
-        ret = (
-            0.5 * coeff * self.s_n1 - self.s_n2,
-            math.sin(self.get_w(N)) * self.s_n1,
-            math.sqrt(self.s_n2**2 + self.s_n1**2 - coeff * self.s_n1 * self.s_n2)
-        )
+        deq = DifferenceEquation([-coeff, 1], [], 1.0)
+        sn = deq.yn(xn)
 
-        return ret[2]
+        sn1 = sn[N-1]
+        sn2 = sn[N-2]
+
+        return math.sqrt(sn2**2 + sn1**2 - coeff * sn1 * sn2)
 
 
 if __name__ == "__main__":

@@ -63,8 +63,8 @@ def process_wav(fpath_sig_in):
     tones[1477][941] = ord("#")
     tones[1633][941] = ord("D")
 
-    WINDOW_SIZE = 64 # Size of our sample to use to pass to everything!
-    p = 0.5 # Change this parameter to change O. 0.0 < p < 1.0, where as p->0 we have more resolute tone updates but slower computer times, and vice versa. 
+    WINDOW_SIZE = 32 # Size of our sample to use to pass to everything!
+    p = 0.10 # Change this parameter to change O. 0.0 < p < 1.0, where as p->0 we have more resolute tone updates but slower computer times, and vice versa. 
     O = int(p * WINDOW_SIZE) # The amount of new samples to take before sending everything back through our main filter. 
 
     symbol_val_det = 0
@@ -146,8 +146,8 @@ def main():
         print(sys.version)
         return False
     # assign file name
-    fpath_sig_in = 'dtmf_signals_slow.txt'
-    # fpath_sig_in = 'dtmf_signals_fast.txt'
+    # fpath_sig_in = 'dtmf_signals_slow.txt'
+    fpath_sig_in = 'dtmf_signals_fast.txt'
     # let's do it!
     return process_wav(fpath_sig_in)
 
