@@ -92,29 +92,27 @@ if __name__ == "__main__":
     for i in range(0, gN//2):
         xn[i] = math.cos(2*math.pi*i*0.03) + math.cos(2*math.pi*i * 0.1)
     for i in range(gN//2, gN):
-        xn[i] = math.cos(2*math.pi*i*0.03)
+        xn[i] = math.cos(2*math.pi*i*0.03) + math.cos(2*math.pi*i * 0.01)
 
 
     dft.plot_dft(xn, 32, f_s, "output")
 
     fig, ax = plt.subplots()
 
-    bpg = BPGoertzel(gN, 2) # 10 Hz, not present
-    bpg2 = BPGoertzel(gN, 20) # 
-    bpg3 = BPGoertzel(gN, 6)
+    bpg = BPGoertzel(gN, 2) # 40 Hz, not present, then present
+    bpg2 = BPGoertzel(gN, 20) # 400 Hz, present then not
+    bpg3 = BPGoertzel(gN, 6) # 120 Hz, present
 
     l1 = []
     l2 = []
     l3 = []
-    ln = []
 
     for i in range(0, gN):
         l1.append(bpg.get_mag(xn[i]))
         l2.append(bpg2.get_mag(xn[i]))
         l3.append(bpg3.get_mag(xn[i]))
-        ln.append(i)
 
-    ax.plot(np.array(l1))
+    #ax.plot(np.array(l1))
     ax.plot(np.array(l2))
     ax.plot(np.array(l3))
     ax.plot(np.array(xn))
