@@ -1,0 +1,24 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+
+    Coefficients for ALL filters: (Using r = 20, N = 32)
+    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}
+    b0 = 1048576 \PYGZhy{}\PYGZgt{} b0(float) = 1.0
+    a1 = 1048576 \PYGZhy{}\PYGZgt{} a0(float) = 1.0
+
+    Coefficients for each filter by frequency:
+    ==========================================
+
+    Low\PYGZhy{}Frequencies:
+    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}
+    f = 697Hz  \PYGZhy{}\PYGZgt{} a0 = \PYGZhy{}802545, a0(float) = \PYGZhy{}0.7653668647301797
+    f = 770Hz  \PYGZhy{}\PYGZgt{} a0 = \PYGZhy{}802545, a0(float) = \PYGZhy{}0.7653668647301797
+    f = 852Hz  \PYGZhy{}\PYGZgt{} a0 = \PYGZhy{}409134, a0(float) = \PYGZhy{}0.39018064403225666
+    f = 941Hz  \PYGZhy{}\PYGZgt{} a0 = 0      , a0(float) = \PYGZhy{}1.2246467991473532e\PYGZhy{}16
+
+    High\PYGZhy{}Frequencies:
+    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}
+    f = 1209Hz \PYGZhy{}\PYGZgt{} a0 = 802545 , a0(float) = 0.7653668647301795
+    f = 1336Hz \PYGZhy{}\PYGZgt{} a0 = 1165115, a0(float) = 1.111140466039204
+    f = 1447Hz \PYGZhy{}\PYGZgt{} a0 = 1482910, a0(float) = 1.414213562373095
+    f = 1633Hz \PYGZhy{}\PYGZgt{} a0 = 1743718, a0(float) = 1.6629392246050907
+\end{Verbatim}

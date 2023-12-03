@@ -6,25 +6,292 @@
 
 \input{./Template/lec_pre.sty} 
 
+\newcommand{\magphaseplot}[1]{
+    \begin{figure}[H]
+        \centering 
+        \includesvg[width=0.6\textwidth]{media/#1_resp.svg}
+        \caption{$f = #1$ Bandpass Filter Response}
+        \label{fig:f=#1}
+    \end{figure}
+}
+
 \begin{document} 
 
 \inserttitlepage 
 
-\section*{TODOs}
+\section*{Abstract}
 
-We have $f_s = 4000$ so then we want some say $32$ samples per 
-run of our frequency analysis. 
+We used a common Goertzel Algorithmic design to create a touch-tone 
+analyzer, to predict what tone is being pressed within a given 
+signal of a variety of frequencies. We detail our design below:
 
-We want half of the 32 samples to be overlapped from the previous sample. Thus, 
-16 samples will be from the previous sample. 
+\section*{Results}
+
+Overall, we got an ISI error of \texttt{16.1\%} on the fastest signal, and 
+got an even better \texttt{6.5\%} error on the slower signal. The following 
+
+For our filter coefficients, we used a $b = 20$ value for our 
+bits as a good guideline. Increasing the number of bits did very 
+little past this point, as it only increased the resolution of 
+our data points, and not necessarily the correctness of them. 
+
+What follows is our runs on both \texttt{dtmf\_signals\_slow.txt}
+(see Figure \ref{fig:slow})
+and \texttt{dtmf\_signals\_fast.txt} 
+(see Figure \ref{fig:fast})
+each:
+
+\begin{figure}
+    \centering 
+    \includesvg{media/slow.svg}
+    \caption{Output from \texttt{dtmf\_signals\_slow.txt}}
+    \label{fig:slow}
+\end{figure}
+
+\begin{figure}
+    \centering 
+    \includesvg{media/fast.svg}
+    \caption{Output from \texttt{dtmf\_signals\_fast.txt}}
+    \label{fig:fast}
+\end{figure}
+
+
+\section*{High-Level Design}
+
+Our filters use an algorithm known as \textbf{Goertzel's Algorithm}.
+It essentially boils down to:
+
+\begin{enumerate}
+    \item An IIR Bandpass filter centered at some frequency $\omega_0$. 
+    \item An FIR filter to extract the DFT from the incoming data.
+\end{enumerate}
+
+The IIR Bandpass filter is described as follows via $s[n]$:
+
+\[
+    s[n] = x[n] + 2\cos(\omega_0)s[n-1] - s[n-2]
+\]
+
+Notice that this is just our $H(z)$ Bandpass filter, 
+with values of $\omega_0$ for the center 
+frequency, as well as using $r = 1$.
+
+The FIR filter converts our $s[n]$ into $y[n]$ so that 
+we can get the DFT at our $\omega_0$ by calculating $y[N]$ for 
+some input signal of length $N$. It's defined as:
+
+\[
+    y[n] = s[n] - e^{-j \omega_0}s[n-1]
+\]
+
+The math behind how this caluclates the DFT is as follows. Notice 
+that we can find the $Z$-transforms for both $S$ and $Y$ as follows:
+
+\begin{align*}
+    \frac{S(z)}{X(z)} &= \frac{1}{1 - 2\cos(\omega_0)z^{-1} + z^{-2}} \\
+    &= \frac{1}{(1-e^{j\omega_0}z^{-1})(1-e^{-j\omega_0}z^{-1})}
+\end{align*}
+
+\begin{align*}
+    \frac{Y(z)}{S(z)} &= 1 - e^{-j\omega_0}z^{-1}
+\end{align*}
+
+Combining the two filters gives:
+
+\begin{align*}
+    \frac{S(z)}{X(z)}\frac{Y(z)}{S(z)} &= \frac{Y(z)}{X(z)} \\
+    &= H(z) \\
+    &= \frac{1 - e^{-j\omega_0}z^{-1}}{(1-e^{j\omega_0}z^{-1})(1-e^{-j\omega_0}z^{-1})} \\
+    &= \frac{1}{1 - e^{+j\omega_0}z^{-1}}
+\end{align*}
+
+Which can be transformed back into: 
+
+\begin{align*}
+    y[n] &= x[n] + e^{+j\omega_0}y[n-1] \\
+    &= \sum_{k = -\infty}^n x[k]e^{+j\omega_0(n-k)}
+\end{align*}
+
+We impose that when $k < 0$ that $x[k] = 0$, which is usually 
+the case, so then:
+
+\begin{align*}
+    y[n] &= \sum_{k = 0}^n x[k]e^{+j\omega_0(n-k)} \\
+    &= e^{+j\omega_0} \sum_{k=0}^n x[k]e^{-j\omega_0k}
+\end{align*}
+
+Where the right side is just the DFT! The power of this 
+algorithm is that we want to just calculate $y[N]$, but notice that
+we can substitute the definition of $s[n]$ to get:
+
+\begin{align*}
+    y[N] &= s[N] - e^{-j\omega_0}s[N-1] \\
+    &= (2\cos(\omega_0)s[N-1] - s[N-2]) - e^{-j\omega_0}s[N-1] \\
+    &= e^{+j\omega_0}s[N-1] - s[N-2] 
+\end{align*}
+
+Thus, the algorithm essentially boils down to:
+
+\begin{enumerate}
+    \item Calculate, using $x[n]$ all $s[0] \to s[N-1]$ terms using the definition of $s[n]$. 
+    \item Use the shortcut described above to get $y[N]$
+    \item Return $|y[N]|$ as your DFT magnitude for $\omega_0$.
+\end{enumerate}
+
+We do note that $\omega_0 = 2\pi \frac{k}{N}$, so the frequency 
+you want to measure must satisfy that $k$ is an integer in the equation.
+Usually, even if some $f$ we want to measure isn't an integer 
+multiple, we take the nearest $k$ as a good approximation. 
+
+As such, a high-level diagram of our design is as follows:
+
+\begin{figure}[H]
+    \centering 
+    \includesvg[width=1.0\textwidth]{media/Touch Tone High Level Diagram.svg}
+    \caption{High Level Diagram}
+    \label{fig:high-level}
+\end{figure}
+
+We define each ``group'' of frequencies we want to analyze and 
+choose a ``best'' values as a \texttt{GoertzelComb}. Here, in 
+this case the frequencies \texttt{697, 770, 852, 941} form a 
+\texttt{GoertzelComb}.
+
+As such, as long as \texttt{GoertzelFilter} works, we get 
+a best guess for each group of frequencies, giving us the tone 
+that we detect. 
+
+\section*{Low-Level Design}
+
+Implementing the difference equations above, we get the 
+following low-level diagram for our design:
+
+\begin{figure}[H]
+    \centering 
+    \includesvg[width=1.0\textwidth]{media/Touch Tone Low Level Diagram.svg}
+    \caption{Low Level Diagram}
+    \label{fig:low-level}
+\end{figure}
+
+Our \texttt{DSP} for using integer arithmetic is as follows:
+
+\begin{figure}[H]
+    \centering 
+    \includesvg[width=1.0\textwidth]{media/Touch Tone DSP.svg}
+    \caption{DSP Diagram}
+    \label{fig:dsp}
+\end{figure}
+
+\section*{Coefficients Used}
+
+We note that we generalized a lot of the process of finding 
+the coefficients used for most difference equations. As such, the 
+equations are generated ``on-the-fly'' based on the input 
+frequencies we need. The good thing is that all frequencies are 
+constant, so we can generate a list of the constants used. As 
+such, we used the following \texttt{float} constants, and used 
+the \texttt{DSP} above to get the following coefficients:
+
+\begin{minted}{text}
+    
+    Coefficients for ALL filters: (Using r = 20, N = 32)
+    --------------------------------------------
+    b0 = 1048576 -> b0(float) = 1.0
+    a1 = 1048576 -> a0(float) = 1.0
+
+    Coefficients for each filter by frequency:
+    ==========================================
+    
+    Low-Frequencies:
+    ----------------
+    f = 697Hz  -> a0 = -802545, a0(float) = -0.7653668647301797
+    f = 770Hz  -> a0 = -802545, a0(float) = -0.7653668647301797
+    f = 852Hz  -> a0 = -409134, a0(float) = -0.39018064403225666
+    f = 941Hz  -> a0 = 0      , a0(float) = -1.2246467991473532e-16
+
+    High-Frequencies:
+    ----------------
+    f = 1209Hz -> a0 = 802545 , a0(float) = 0.7653668647301795
+    f = 1336Hz -> a0 = 1165115, a0(float) = 1.111140466039204
+    f = 1447Hz -> a0 = 1482910, a0(float) = 1.414213562373095
+    f = 1633Hz -> a0 = 1743718, a0(float) = 1.6629392246050907
+\end{minted}
+
+These come from the following \texttt{matlab} file to generate 
+the coefficients and the following magnitude-phase plots:
+
+\inputminted{matlab}{calc.m}
+
+Which gives the following plots:
+
+\section*{Codebase}
+
+We used a lot of files for this project, and don't want to 
+fill up the contents of this report. Please check out 
+\href{https://github.com/BrianMere/CPE367FinalProject.git}{\textbf{this link (click
+on me)}}
+for a full list of current files used in our design (use the 
+\texttt{main} branch).
+
+\magphaseplot{697}
+\magphaseplot{770}
+\magphaseplot{852}
+\magphaseplot{941}
+
+\magphaseplot{1209}
+\magphaseplot{1336}
+\magphaseplot{1477}
+\magphaseplot{1633}
+
+Notice the following:
 
 \begin{itemize}
-    \item Make a FFT from DFT assuming $2^N$ sized samples.
-    \item Implement a Goertzel Filter given some $\omega_0$ via \href{https://en.wikipedia.org/wiki/Goertzel_algorithm}
-    \item Make a LPF and BPF class that takes in $f_s$, $f_c$.
+    \item The \textit{true} center frequencies of the bandpass filters 
+    are \textit{not} the values of $f_m$ we pass in. Rather, due to the 
+    nature of the DFT, we have to use an integer multiple of $2\pi/N$, so 
+    the frequency must get rounded to the nearest value of $\omega_0$ such that 
+    $k$ is indeed an integer.
+    \item The impulse repsonse itself is periodic, so it should 
+    \textit{never} reach a stable state of decreasing by 50\% or less 
+    by some unit of time.  
 \end{itemize}
 
-\section*{Introductions}
+
+
+
+\section*{Additional Discussion}
+
+Some things of interest that were covered during this project:
+
+\begin{enumerate}
+    \item We had to really nail down using a correct Goertzel Algorithm. 
+    Many approaches \textit{actually} don't use complex arithmetic 
+    for their calculations, but convert to separate real and 
+    imaginary numbers for the values of question.
+    \item We tried to before use a BP filter \textit{before} sending it 
+    to \texttt{Goertzel}; however, it's better not to overfilter 
+    the signal as otherwise the input is very sensitive to deviations 
+    away from the target frequency. As such, we used the fact that 
+    \texttt{Goertzel} itself contains a BP filter as a justification of 
+    not using an external one into it. 
+    \item For outputting no-symbol, we hypothesized that we could 
+    try to output a no-symbol signal \textit{if} all of the $X[k]$ for 
+    each frequency in question is about the same. If that's the case, it's 
+    most likely that there is no symbol, as the frequencies we are detecting 
+    are likely just noise. 
+    \item It's good that we used the DTMF standard values for frequencies to 
+    detect. This is because they're pretty relatively spread out, so 
+    the values of $k$ for each frequency is, at the very least, unique (for some 
+    big enough $N$).
+    \item Some ways to improve this design includes trying to use different $N$ 
+    values for the rows and columns of frequencies. We could use a smaller $N$ 
+    value for higher frequencies (when trying to choose $k$), so to have 
+    a more up-to-date way of updating the high and low frequencies, we could 
+    offset these $N$ values to have one update at faster times. 
+\end{enumerate}
+    
+
+
 
 
 

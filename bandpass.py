@@ -1,6 +1,7 @@
 from my_fifo import my_fifo
 from dft import plot_dft
 import math
+import cmath
 
 class BandpassFilter:
     """A class to handle the difference equation 
@@ -78,7 +79,7 @@ class DifferenceEquation:
         r: The resolution we want our filter to have, giving the number of bits. By default uses r = 10. 
     """
 
-    def __init__(self, A : list[float], B: list[float], B0 : float, r : int = 10):
+    def __init__(self, A : list[float], B: list[float], B0 : float, r : int = 20):
         self.A = A
         self.B = B
         self.B0 = B0
@@ -173,7 +174,29 @@ class DifferenceEquation:
             number_values = len(self.B)
         return self.yn([1], number_values)
 
+    def __str__(self) -> str:
+        """Get a report of INTEGER coefficients used..."""
+
+        s_out = f"Coefficients for DE w/ A = {self.A}, B = {self.B}, b0 = {self.B0}\n"
+        C = self._get_C()
+
+        # First do for B0
+        b0 = round(C * self.B0)
+        s_out += f"b0: {b0}\n"
+
+        # Then repeat for A, B
+        for i, b in enumerate(self.B):
+            # Do INT arithmetic for faster calcs. 
+            bk = round(C * b)
+            s_out += f"b{i}: {bk}\n"
+
+        for i, a in enumerate(self.A):
+            ak = round(C * a)
+            # Note for A we need to subtract these values. 
+            s_out += f"a{i}: {ak}\n"
         
+        return s_out
+
 
 if __name__ == "__main__":
 
@@ -186,9 +209,11 @@ if __name__ == "__main__":
 
     f_s = 20000
 
-    # lpf = LowpassFilter(5000, f_s, 21, 2.0)
+    lpf = LowpassFilter(5000, f_s, 21, 2.0)
 
-    lpf = BandpassFilterRange([5000], 3000, f_s, 21, 2.0)
+    # lpf = BandpassFilterRange([5000], 3000, f_s, 21, 2.0)
+    # j = complex(0.0, 1.0)
+    # lpf = DifferenceEquation([], [-1 * cmath.exp(-1 * j * 2 * math.pi * 5000 / f_s)], 1.0)
 
     hn = lpf.de.hn()
     plot_dft(hn, len(hn), f_s, fname = None)

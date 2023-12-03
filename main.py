@@ -23,7 +23,7 @@ def process_wav(fpath_sig_in):
 ###############################
 # define list of signals to be displayed by and analyzer
 # note that the signal analyzer already includes: 'symbol_val','symbol_det','error'
-    more_sig_list = ['sig_1','high_freq', 'low_freq', '1336']
+    more_sig_list = ['sig_1','high_freq', 'low_freq', '1336', '1209', '770', '697']
     # sample rate is 4kHz
     fs = 4000
     # instantiate signal analyzer and load data
@@ -45,6 +45,7 @@ def process_wav(fpath_sig_in):
     HFDetect = GoertzelCombs(fhigh, fs)
     # LFDetect = GoertzelFilterComb(flow, fs, BandpassFilterRange(flow, 100, fs, 31, 1.4).de)
     LFDetect = GoertzelCombs(flow, fs)
+
     # And use this lookup table for values
     tones : dict[float, dict[float, int]] = {}
     for f in fhigh:
@@ -52,28 +53,31 @@ def process_wav(fpath_sig_in):
     tones[1209][697] = 1
     tones[1336][697] = 2
     tones[1477][697] = 3
-    tones[1633][697] = ord("A")
+    tones[1633][697] = 10 #0xA
     tones[1209][770] = 4
     tones[1336][770] = 5
     tones[1477][770] = 6
-    tones[1633][770] = ord("B")
+    tones[1633][770] = 11
     tones[1209][852] = 7
     tones[1336][852] = 8
     tones[1477][852] = 9 
-    tones[1633][852] = ord("C")
-    tones[1209][941] = ord("*")
+    tones[1633][852] = 12
+    tones[1209][941] = 14 # *
     tones[1336][941] = 0
-    tones[1477][941] = ord("#")
-    tones[1633][941] = ord("D")
+    tones[1477][941] = 15 # #
+    tones[1633][941] = 13
 
     WINDOW_SIZE = 32 # Size of our sample to use to pass to everything!
-    p = 0.10 # Change this parameter to change O. 0.0 < p < 1.0, where as p->0 we have more resolute tone updates but slower computer times, and vice versa. 
+    p = 0.1 # Change this parameter to change O. 0.0 < p < 1.0, where as p->0 we have more resolute tone updates but slower computer times, and vice versa. 
     O = int(p * WINDOW_SIZE) # The amount of new samples to take before sending everything back through our main filter. 
 
     symbol_val_det = 0
     hf = fhigh[0]
     lf = flow[0]
-    tf = 0
+    f1336 = 0
+    f1209 = 0
+    f770 = 0
+    f697 = 0
 
     # Define a place to put our temporary signals ...
 
@@ -81,6 +85,16 @@ def process_wav(fpath_sig_in):
     for _ in range(0, WINDOW_SIZE):
         xnp.enqueue(0.0)
     i_o = 0
+
+    # Get coefficients:
+    for f in fhigh + flow:
+        print(f"Goertzel BP filter for f = {f}")
+        N = WINDOW_SIZE
+        k = int(0.5 + (N * f / fs))
+        w0 = 2*math.pi*k/N
+        coeff = 2 * math.cos(w0) 
+        deq = DifferenceEquation([-coeff, 1], [], 1.0)
+        print(deq.__str__())
     
 
     for n_curr in range(s2.get_len()):
@@ -106,13 +120,20 @@ def process_wav(fpath_sig_in):
             # Update input and filters to get new values. 
             hf = HFDetect.get_best_signal_guess(data)
             lf = LFDetect.get_best_signal_guess(data)
-            tf = HFDetect.probe[1] # 1336
+            f1336 = HFDetect.probe[1]
+            f1209 = HFDetect.probe[0]
+            f770 = LFDetect.probe[1]
+            f697 = LFDetect.probe[0]
+            
 
         symbol_val_det = tones[hf][lf]
         
         s2.set('high_freq', n_curr, hf)
         s2.set('low_freq', n_curr, lf)
-        s2.set('1336', n_curr, tf)
+        s2.set('1336', n_curr, f1336)
+        s2.set('1209', n_curr, f1209)
+        s2.set('770', n_curr, f770)
+        s2.set('697', n_curr, f697)
 
         # save intermediate signals as needed, for plotting
         # add signals, as desired!
